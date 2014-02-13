@@ -56,15 +56,22 @@ Main Features
 import sys, ctypes, platform
 
 if sys.hexversion < 0x02060000:
-	ctypes.c_bool = ctypes.c_byte
+    ctypes.c_bool = ctypes.c_byte
 
+# ==== ELIUK: shared linked library load process ====
 if platform.system().lower() == 'windows':
-	bass_module = ctypes.WinDLL('bass')
-	func_type = ctypes.WINFUNCTYPE
+    bass_module = ctypes.WinDLL('libs\\bass32') if not sys.maxint > 2 ** 32 \
+        else ctypes.WinDLL('libs\\bass64')
+    func_type = ctypes.WINFUNCTYPE
+elif platform.system().lower() == 'darwin':
+    # 64 bit bass anyone?
+    bass_module = ctypes.CDLL('./libs/bass.dylib', mode=ctypes.RTLD_GLOBAL)
 else:
-	# correct by Wasylews (sabov.97@mail.ru), thank him
-	bass_module = ctypes.CDLL('./libbass.so', mode=ctypes.RTLD_GLOBAL)
-	func_type = ctypes.CFUNCTYPE
+    bass_module = ctypes.CDLL('./libs/bass32.so', mode=ctypes.RTLD_GLOBAL) if \
+        not sys.maxint > 2 ** 32 else \
+        ctypes.CDLL('./libs/bass64.so', mode=ctypes.RTLD_GLOBAL)
+    func_type = ctypes.CFUNCTYPE
+# ===================================================
 
 QWORD = ctypes.c_int64
 
@@ -164,7 +171,7 @@ BASS_ERROR_UNKNOWN = -1
 error_descriptions[BASS_ERROR_UNKNOWN] = 'some other mystery problem'
 
 def get_error_description(error_code = -1):
-	return error_descriptions.get(error_code, 'unknown BASS error code ' + str(error_code))
+    return error_descriptions.get(error_code, 'unknown BASS error code ' + str(error_code))
 
 # BASS_SetConfig options
 BASS_CONFIG_BUFFER = 0
@@ -222,16 +229,16 @@ BASS_OBJECT_DS3DL = 2# IDirectSound3DListener
 
 # Device info structure
 class BASS_DEVICEINFO(ctypes.Structure):
-	_fields_ = [('name', ctypes.c_char_p),#description
-	('driver', ctypes.c_char_p),#driver
-	('flags', ctypes.c_ulong)
-	]
+    _fields_ = [('name', ctypes.c_char_p),#description
+    ('driver', ctypes.c_char_p),#driver
+    ('flags', ctypes.c_ulong)
+    ]
 if platform.system().lower() == 'windows':
-	if sys.getwindowsversion()[3] == 3:#VER_PLATFORM_WIN32_CE
-		BASS_DEVICEINFO._fields_ = [('name', ctypes.c_wchar_p),#description
-		('driver', ctypes.c_wchar_p),#driver
-		('flags', ctypes.c_ulong)
-		]
+    if sys.getwindowsversion()[3] == 3:#VER_PLATFORM_WIN32_CE
+        BASS_DEVICEINFO._fields_ = [('name', ctypes.c_wchar_p),#description
+        ('driver', ctypes.c_wchar_p),#driver
+        ('flags', ctypes.c_ulong)
+        ]
 
 # BASS_DEVICEINFO flags
 BASS_DEVICE_ENABLED = 1
@@ -239,21 +246,21 @@ BASS_DEVICE_DEFAULT = 2
 BASS_DEVICE_INIT = 4
 
 class BASS_INFO(ctypes.Structure):
-	_fields_ = [('flags', ctypes.c_ulong),#device capabilities (DSCAPS_xxx flags)
-	('hwsize', ctypes.c_ulong),#size of total device hardware memory
-	('hwfree', ctypes.c_ulong),#size of free device hardware memory
-	('freesam', ctypes.c_ulong),#number of free sample slots in the hardware
-	('free3d', ctypes.c_ulong),#number of free 3D sample slots in the hardware
-	('minrate', ctypes.c_ulong),#min sample rate supported by the hardware
-	('maxrate', ctypes.c_ulong),#max sample rate supported by the hardware
-	('eax', ctypes.c_bool),#device supports EAX? (always FALSE if BASS_DEVICE_3D was not used)
-	('minbuf', ctypes.c_ulong),#recommended minimum buffer length in ms (requires BASS_DEVICE_LATENCY)
-	('dsver', ctypes.c_ulong),#DirectSound version
-	('latency', ctypes.c_ulong),#delay (in ms) before start of playback (requires BASS_DEVICE_LATENCY)
-	('initflags', ctypes.c_ulong),#BASS_Init "flags" parameter
-	('speakers', ctypes.c_ulong),#number of speakers available
-	('freq', ctypes.c_ulong)#current output rate (Vista/OSX only)
-	]
+    _fields_ = [('flags', ctypes.c_ulong),#device capabilities (DSCAPS_xxx flags)
+    ('hwsize', ctypes.c_ulong),#size of total device hardware memory
+    ('hwfree', ctypes.c_ulong),#size of free device hardware memory
+    ('freesam', ctypes.c_ulong),#number of free sample slots in the hardware
+    ('free3d', ctypes.c_ulong),#number of free 3D sample slots in the hardware
+    ('minrate', ctypes.c_ulong),#min sample rate supported by the hardware
+    ('maxrate', ctypes.c_ulong),#max sample rate supported by the hardware
+    ('eax', ctypes.c_bool),#device supports EAX? (always FALSE if BASS_DEVICE_3D was not used)
+    ('minbuf', ctypes.c_ulong),#recommended minimum buffer length in ms (requires BASS_DEVICE_LATENCY)
+    ('dsver', ctypes.c_ulong),#DirectSound version
+    ('latency', ctypes.c_ulong),#delay (in ms) before start of playback (requires BASS_DEVICE_LATENCY)
+    ('initflags', ctypes.c_ulong),#BASS_Init "flags" parameter
+    ('speakers', ctypes.c_ulong),#number of speakers available
+    ('freq', ctypes.c_ulong)#current output rate (Vista/OSX only)
+    ]
 
 # BASS_INFO flags (from DSOUND.H)
 DSCAPS_CONTINUOUSRATE = 0x00000010# supports all sample rates between min/maxrate
@@ -266,12 +273,12 @@ DSCAPS_SECONDARY16BIT = 0x00000800# 16 bit
 
 # Recording device info structure
 class BASS_RECORDINFO(ctypes.Structure):
-	_fields_ = [('flags', ctypes.c_ulong),#DWORD flags;// device capabilities (DSCCAPS_xxx flags)
-	('formats', ctypes.c_ulong),#DWORD formats;// supported standard formats (WAVE_FORMAT_xxx flags)
-	('inputs', ctypes.c_ulong),#DWORD inputs;	// number of inputs
-	('singlein', ctypes.c_ubyte),#BOOL singlein;// TRUE = only 1 input can be set at a time
-	('freq', ctypes.c_ulong)#DWORD freq;	// current input rate (Vista/OSX only)
-	]
+    _fields_ = [('flags', ctypes.c_ulong),#DWORD flags;// device capabilities (DSCCAPS_xxx flags)
+    ('formats', ctypes.c_ulong),#DWORD formats;// supported standard formats (WAVE_FORMAT_xxx flags)
+    ('inputs', ctypes.c_ulong),#DWORD inputs;	// number of inputs
+    ('singlein', ctypes.c_ubyte),#BOOL singlein;// TRUE = only 1 input can be set at a time
+    ('freq', ctypes.c_ulong)#DWORD freq;	// current input rate (Vista/OSX only)
+    ]
 
 # BASS_RECORDINFO flags (from DSOUND.H)
 DSCCAPS_EMULDRIVER = DSCAPS_EMULDRIVER# device does NOT have hardware DirectSound recording support
@@ -293,24 +300,24 @@ WAVE_FORMAT_4S16 = 0x00000800# 44.1   kHz, Stereo, 16-bit
 
 # Sample info structure
 class BASS_SAMPLE(ctypes.Structure):
-	_fields_ = [('freq', ctypes.c_ulong),#DWORD freq;// default playback rate
-	('volume', ctypes.c_float),#float volume;// default volume (0-1)
-	('pan', ctypes.c_float),#float pan;// default pan (-1=left, 0=middle, 1=right)
-	('flags', ctypes.c_ulong),#DWORD flags;// BASS_SAMPLE_xxx flags
-	('length', ctypes.c_ulong),#DWORD length;// length (in bytes)
-	('max', ctypes.c_ulong),#DWORD max;// maximum simultaneous playbacks
-	('origres', ctypes.c_ulong),#DWORD origres;// original resolution bits
-	('chans', ctypes.c_ulong),#DWORD chans;// number of channels
-	('mingap', ctypes.c_ulong),#DWORD mingap;	// minimum gap (ms) between creating channels
-	('mode3d', ctypes.c_ulong),#DWORD mode3d;// BASS_3DMODE_xxx mode
-	('mindist', ctypes.c_float),#float mindist;// minimum distance
-	('maxdist', ctypes.c_float),#float maxdist;// maximum distance
-	('iangle', ctypes.c_ulong),#DWORD iangle;// angle of inside projection cone
-	('oangle', ctypes.c_ulong),#DWORD oangle;// angle of outside projection cone
-	('outvol', ctypes.c_float),#float outvol;// delta-volume outside the projection cone
-	('vam', ctypes.c_ulong),#DWORD vam;// voice allocation/management flags (BASS_VAM_xxx)
-	('priority', ctypes.c_ulong)#DWORD priority;// priority (0=lowest, 0xffffffff=highest)
-	]
+    _fields_ = [('freq', ctypes.c_ulong),#DWORD freq;// default playback rate
+    ('volume', ctypes.c_float),#float volume;// default volume (0-1)
+    ('pan', ctypes.c_float),#float pan;// default pan (-1=left, 0=middle, 1=right)
+    ('flags', ctypes.c_ulong),#DWORD flags;// BASS_SAMPLE_xxx flags
+    ('length', ctypes.c_ulong),#DWORD length;// length (in bytes)
+    ('max', ctypes.c_ulong),#DWORD max;// maximum simultaneous playbacks
+    ('origres', ctypes.c_ulong),#DWORD origres;// original resolution bits
+    ('chans', ctypes.c_ulong),#DWORD chans;// number of channels
+    ('mingap', ctypes.c_ulong),#DWORD mingap;	// minimum gap (ms) between creating channels
+    ('mode3d', ctypes.c_ulong),#DWORD mode3d;// BASS_3DMODE_xxx mode
+    ('mindist', ctypes.c_float),#float mindist;// minimum distance
+    ('maxdist', ctypes.c_float),#float maxdist;// maximum distance
+    ('iangle', ctypes.c_ulong),#DWORD iangle;// angle of inside projection cone
+    ('oangle', ctypes.c_ulong),#DWORD oangle;// angle of outside projection cone
+    ('outvol', ctypes.c_float),#float outvol;// delta-volume outside the projection cone
+    ('vam', ctypes.c_ulong),#DWORD vam;// voice allocation/management flags (BASS_VAM_xxx)
+    ('priority', ctypes.c_ulong)#DWORD priority;// priority (0=lowest, 0xffffffff=highest)
+    ]
 
 BASS_SAMPLE_8BITS = 1# 8 bit
 BASS_SAMPLE_FLOAT = 256# 32-bit floating-point
@@ -383,15 +390,15 @@ BASS_VAM_TERM_PRIO = 16
 
 # Channel info structure
 class BASS_CHANNELINFO(ctypes.Structure):
-	_fields_ = [('freq', ctypes.c_ulong),#DWORD freq;// default playback rate
-	('chans', ctypes.c_ulong),#DWORD chans;// channels
-	('flags', ctypes.c_ulong),#DWORD flags;// BASS_SAMPLE/STREAM/MUSIC/SPEAKER flags
-	('ctype', ctypes.c_ulong),#DWORD ctype;// type of channel
-	('origres', ctypes.c_ulong),#DWORD origres;// original resolution
-	('plugin', HPLUGIN),#HPLUGIN plugin;// plugin
-	('sample', HSAMPLE),#HSAMPLE sample;// sample
-	('filename', ctypes.c_char_p)#const char *filename;// filename
-	]
+    _fields_ = [('freq', ctypes.c_ulong),#DWORD freq;// default playback rate
+    ('chans', ctypes.c_ulong),#DWORD chans;// channels
+    ('flags', ctypes.c_ulong),#DWORD flags;// BASS_SAMPLE/STREAM/MUSIC/SPEAKER flags
+    ('ctype', ctypes.c_ulong),#DWORD ctype;// type of channel
+    ('origres', ctypes.c_ulong),#DWORD origres;// original resolution
+    ('plugin', HPLUGIN),#HPLUGIN plugin;// plugin
+    ('sample', HSAMPLE),#HSAMPLE sample;// sample
+    ('filename', ctypes.c_char_p)#const char *filename;// filename
+    ]
 
 BASS_CTYPE_SAMPLE = 1
 BASS_CTYPE_RECORD = 2
@@ -414,29 +421,29 @@ BASS_CTYPE_MUSIC_IT = 0x20004
 BASS_CTYPE_MUSIC_MO3 = 0x00100# MO3 flag
 
 class BASS_PLUGINFORM(ctypes.Structure):
-	_fields_ = [('ctype', ctypes.c_ulong),#DWORD ctype;		// channel type
-	('name', ctypes.c_char_p),#const char *name;	// format description
-	('exts', ctypes.c_char_p)#const char *exts;	// file extension filter (*.ext1;*.ext2;etc...)
-	]
+    _fields_ = [('ctype', ctypes.c_ulong),#DWORD ctype;		// channel type
+    ('name', ctypes.c_char_p),#const char *name;	// format description
+    ('exts', ctypes.c_char_p)#const char *exts;	// file extension filter (*.ext1;*.ext2;etc...)
+    ]
 if platform.system().lower() == 'windows':
-	if sys.getwindowsversion()[3] == 3:#VER_PLATFORM_WIN32_CE
-		BASS_PLUGINFORM._fields_ = [('ctype', ctypes.c_ulong),#DWORD ctype;		// channel type
-		('name', ctypes.c_wchar_p),#const wchar_t *name;	// format description
-		('exts', ctypes.c_wchar_p)#const wchar_t *exts;	// file extension filter (*.ext1;*.ext2;etc...)
-		]
+    if sys.getwindowsversion()[3] == 3:#VER_PLATFORM_WIN32_CE
+        BASS_PLUGINFORM._fields_ = [('ctype', ctypes.c_ulong),#DWORD ctype;		// channel type
+        ('name', ctypes.c_wchar_p),#const wchar_t *name;	// format description
+        ('exts', ctypes.c_wchar_p)#const wchar_t *exts;	// file extension filter (*.ext1;*.ext2;etc...)
+        ]
 
 class BASS_PLUGININFO(ctypes.Structure):
-	_fields_ = [('version', ctypes.c_ulong),#DWORD version;// version (same form as BASS_GetVersion)
-	('formatc', ctypes.c_ulong),#DWORD formatc;// number of formats
-	('formats', ctypes.POINTER(BASS_PLUGINFORM))#const BASS_PLUGINFORM *formats;// the array of formats
-	]
+    _fields_ = [('version', ctypes.c_ulong),#DWORD version;// version (same form as BASS_GetVersion)
+    ('formatc', ctypes.c_ulong),#DWORD formatc;// number of formats
+    ('formats', ctypes.POINTER(BASS_PLUGINFORM))#const BASS_PLUGINFORM *formats;// the array of formats
+    ]
 
 # 3D vector (for 3D positions/velocities/orientations)
 class BASS_3DVECTOR(ctypes.Structure):
-	_fields_ = [('x', ctypes.c_float),#float x;// +=right, -=left
-	('y', ctypes.c_float),#float y;// +=up, -=down
-	('z', ctypes.c_float)#float z;// +=front, -=behind
-	]
+    _fields_ = [('x', ctypes.c_float),#float x;// +=right, -=left
+    ('y', ctypes.c_float),#float y;// +=up, -=down
+    ('z', ctypes.c_float)#float z;// +=front, -=behind
+    ]
 
 # 3D channel modes
 BASS_3DMODE_NORMAL = 0
@@ -517,13 +524,13 @@ STREAMPROC = func_type(ctypes.c_ulong, HSTREAM, ctypes.c_void_p, ctypes.c_ulong,
 #RETURN : Number of bytes written. Set the BASS_STREAMPROC_END flag to end the stream.
 
 #~ def user_stream_callback_function(handle, buffer, length, user):
-	#~ b = ctypes.cast(buffer, ctypes.c_char_p)
-	#~ ctypes.memset(b, 0, length)
-	#~ data = ctypes.c_char_p(' ' * length)
-	#~ ctypes.memmove(b, data, length)
-	#~ if your_custom_function_is_eof() or your_custom_flag_is_eof:
-		#~ length |= BASS_STREAMPROC_END
-	#~ return length
+    #~ b = ctypes.cast(buffer, ctypes.c_char_p)
+    #~ ctypes.memset(b, 0, length)
+    #~ data = ctypes.c_char_p(' ' * length)
+    #~ ctypes.memmove(b, data, length)
+    #~ if your_custom_function_is_eof() or your_custom_flag_is_eof:
+        #~ length |= BASS_STREAMPROC_END
+    #~ return length
 #~ user_func = STREAMPROC(user_stream_callback_function)
 
 #BASS_STREAMPROC_END = -2147483648
@@ -551,11 +558,11 @@ FILEREADPROC = func_type(ctypes.c_ulong, ctypes.c_void_p, ctypes.c_ulong, ctypes
 FILESEEKPROC = func_type(ctypes.c_bool, QWORD, ctypes.c_void_p) 
 
 class BASS_FILEPROCS(ctypes.Structure):
-	_fields_ = [('close', FILECLOSEPROC),#FILECLOSEPROC *close;
-	('length', FILELENPROC),#FILELENPROC *length;
-	('read', FILEREADPROC),#FILEREADPROC *read;
-	('seek', FILESEEKPROC)#FILESEEKPROC *seek;
-	]
+    _fields_ = [('close', FILECLOSEPROC),#FILECLOSEPROC *close;
+    ('length', FILELENPROC),#FILELENPROC *length;
+    ('read', FILEREADPROC),#FILEREADPROC *read;
+    ('seek', FILESEEKPROC)#FILESEEKPROC *seek;
+    ]
 
 # BASS_StreamPutFileData options
 BASS_FILEDATA_END = 0
@@ -689,82 +696,82 @@ BASS_TAG_MUSIC_SAMPLE = 0x10300# + sample #, MOD sample name : ANSI string
 
 # ID3v1 tag structure
 class TAG_ID3(ctypes.Structure):
-	_fields_ = [('id', ctypes.c_char*3),#char id[3];
-	('title', ctypes.c_char*30),#char title[30];
-	('artist', ctypes.c_char*30),#char artist[30];
-	('album', ctypes.c_char*30),#char album[30];
-	('year', ctypes.c_char*4),#char year[4];
-	('comment', ctypes.c_char*30),#char comment[30];
-	('genre', ctypes.c_byte)#BYTE genre;
-	]
+    _fields_ = [('id', ctypes.c_char*3),#char id[3];
+    ('title', ctypes.c_char*30),#char title[30];
+    ('artist', ctypes.c_char*30),#char artist[30];
+    ('album', ctypes.c_char*30),#char album[30];
+    ('year', ctypes.c_char*4),#char year[4];
+    ('comment', ctypes.c_char*30),#char comment[30];
+    ('genre', ctypes.c_byte)#BYTE genre;
+    ]
 
 # Binary APE tag structure
 class TAG_APE_BINARY(ctypes.Structure):
-	_fields_ = [('key', ctypes.c_char_p),
-	('data', ctypes.c_void_p),
-	('length', ctypes.c_ulong)]
+    _fields_ = [('key', ctypes.c_char_p),
+    ('data', ctypes.c_void_p),
+    ('length', ctypes.c_ulong)]
 
 # BWF "bext" tag structure
 class TAG_BEXT(ctypes.Structure):
-	if platform.system().lower() != 'windows':
-		_pack_ = 1
-	_fields_ = [('Description', ctypes.c_char*256),#char Description[256];// description
-	('Originator', ctypes.c_char*32),#char Originator[32];// name of the originator
-	('OriginatorReference', ctypes.c_char*32),#char OriginatorReference[32];// reference of the originator
-	('OriginationDate', ctypes.c_char*10),#char OriginationDate[10];// date of creation (yyyy-mm-dd)
-	('OriginationTime', ctypes.c_char*8),#char OriginationTime[8];// time of creation (hh-mm-ss)
-	('TimeReference', QWORD),#QWORD TimeReference;// first sample count since midnight (little-endian)
-	('Version', ctypes.c_ushort),#WORD Version;// BWF version (little-endian)
-	('UMID', ctypes.c_byte*64),#BYTE UMID[64];// SMPTE UMID
-	('Reserved', ctypes.c_byte*190),#BYTE Reserved[190];
-	('CodingHistory', ctypes.c_char_p)#char CodingHistory[];// history
-	]
+    if platform.system().lower() != 'windows':
+        _pack_ = 1
+    _fields_ = [('Description', ctypes.c_char*256),#char Description[256];// description
+    ('Originator', ctypes.c_char*32),#char Originator[32];// name of the originator
+    ('OriginatorReference', ctypes.c_char*32),#char OriginatorReference[32];// reference of the originator
+    ('OriginationDate', ctypes.c_char*10),#char OriginationDate[10];// date of creation (yyyy-mm-dd)
+    ('OriginationTime', ctypes.c_char*8),#char OriginationTime[8];// time of creation (hh-mm-ss)
+    ('TimeReference', QWORD),#QWORD TimeReference;// first sample count since midnight (little-endian)
+    ('Version', ctypes.c_ushort),#WORD Version;// BWF version (little-endian)
+    ('UMID', ctypes.c_byte*64),#BYTE UMID[64];// SMPTE UMID
+    ('Reserved', ctypes.c_byte*190),#BYTE Reserved[190];
+    ('CodingHistory', ctypes.c_char_p)#char CodingHistory[];// history
+    ]
 
 # BWF "cart" tag structures
 class TAG_CART_TIMER(ctypes.Structure):
-	_fields_ = [('dwUsage', ctypes.c_ulong),#DWORD dwUsage;// FOURCC timer usage ID
-	('dwValue', ctypes.c_ulong)#DWORD dwValue;// timer value in samples from head
-	]
+    _fields_ = [('dwUsage', ctypes.c_ulong),#DWORD dwUsage;// FOURCC timer usage ID
+    ('dwValue', ctypes.c_ulong)#DWORD dwValue;// timer value in samples from head
+    ]
 
 class TAG_CART(ctypes.Structure):
-	_fields_ = [('Version', ctypes.c_char*4),#char Version[4];// version of the data structure
-	('Title', ctypes.c_char*64),#char Title[64];// title of cart audio sequence
-	('Artist', ctypes.c_char*64),#char Artist[64];// artist or creator name
-	('CutID', ctypes.c_char*64),#char CutID[64];// cut number identification
-	('ClientID', ctypes.c_char*64),#char ClientID[64];// client identification
-	('Category', ctypes.c_char*64),#char Category[64];// category ID, PSA, NEWS, etc
-	('Classification', ctypes.c_char*64),#char Classification[64];// classification or auxiliary key
-	('OutCue', ctypes.c_char*64),#char OutCue[64];// out cue text
-	('StartDate', ctypes.c_char*10),#char StartDate[10];// yyyy-mm-dd
-	('StartTime', ctypes.c_char*8),#char StartTime[8];// hh:mm:ss
-	('EndDate', ctypes.c_char*10),#char EndDate[10];// yyyy-mm-dd
-	('EndTime', ctypes.c_char*8),#char EndTime[8];// hh:mm:ss
-	('ProducerAppID', ctypes.c_char*64),#char ProducerAppID[64];// name of vendor or application
-	('ProducerAppVersion', ctypes.c_char*64),#char ProducerAppVersion[64];// version of producer application
-	('UserDef', ctypes.c_char*64),#char UserDef[64];// user defined text
-	('dwLevelReference', ctypes.c_ulong),#DWORD dwLevelReference;// sample value for 0 dB reference
-	('PostTimer', TAG_CART_TIMER*8),#TAG_CART_TIMER PostTimer[8];// 8 time markers after head
-	('Reserved', ctypes.c_char*276),#char Reserved[276];
-	('URL', ctypes.c_char*1024),#char URL[1024];// uniform resource locator
-	('TagText', ctypes.c_char_p)#char TagText[];// free form text for scripts or tags
-	]
+    _fields_ = [('Version', ctypes.c_char*4),#char Version[4];// version of the data structure
+    ('Title', ctypes.c_char*64),#char Title[64];// title of cart audio sequence
+    ('Artist', ctypes.c_char*64),#char Artist[64];// artist or creator name
+    ('CutID', ctypes.c_char*64),#char CutID[64];// cut number identification
+    ('ClientID', ctypes.c_char*64),#char ClientID[64];// client identification
+    ('Category', ctypes.c_char*64),#char Category[64];// category ID, PSA, NEWS, etc
+    ('Classification', ctypes.c_char*64),#char Classification[64];// classification or auxiliary key
+    ('OutCue', ctypes.c_char*64),#char OutCue[64];// out cue text
+    ('StartDate', ctypes.c_char*10),#char StartDate[10];// yyyy-mm-dd
+    ('StartTime', ctypes.c_char*8),#char StartTime[8];// hh:mm:ss
+    ('EndDate', ctypes.c_char*10),#char EndDate[10];// yyyy-mm-dd
+    ('EndTime', ctypes.c_char*8),#char EndTime[8];// hh:mm:ss
+    ('ProducerAppID', ctypes.c_char*64),#char ProducerAppID[64];// name of vendor or application
+    ('ProducerAppVersion', ctypes.c_char*64),#char ProducerAppVersion[64];// version of producer application
+    ('UserDef', ctypes.c_char*64),#char UserDef[64];// user defined text
+    ('dwLevelReference', ctypes.c_ulong),#DWORD dwLevelReference;// sample value for 0 dB reference
+    ('PostTimer', TAG_CART_TIMER*8),#TAG_CART_TIMER PostTimer[8];// 8 time markers after head
+    ('Reserved', ctypes.c_char*276),#char Reserved[276];
+    ('URL', ctypes.c_char*1024),#char URL[1024];// uniform resource locator
+    ('TagText', ctypes.c_char_p)#char TagText[];// free form text for scripts or tags
+    ]
 
 # CoreAudio codec info structure
 class TAG_CA_CODEC(ctypes.Structure):
-	_fields_ = [('ftype', ctypes.c_ulong),#DWORD ftype;// file format
-	('atype', ctypes.c_ulong),#DWORD atype;// audio format
-	('name', ctypes.c_char_p)#const char *name;// description
-	]
+    _fields_ = [('ftype', ctypes.c_ulong),#DWORD ftype;// file format
+    ('atype', ctypes.c_ulong),#DWORD atype;// audio format
+    ('name', ctypes.c_char_p)#const char *name;// description
+    ]
 
 class WAVEFORMATEX(ctypes.Structure):
-	_pack_ = 1
-	_fields_ = [('wFormatTag', ctypes.c_long),
-	('nChannels', ctypes.c_long),
-	('nSamplesPerSec', ctypes.c_ulong),
-	('nAvgBytesPerSec', ctypes.c_ulong),
-	('nBlockAlign', ctypes.c_long),
-	('wBitsPerSample', ctypes.c_long),
-	('cbSize', ctypes.c_long)]
+    _pack_ = 1
+    _fields_ = [('wFormatTag', ctypes.c_long),
+    ('nChannels', ctypes.c_long),
+    ('nSamplesPerSec', ctypes.c_ulong),
+    ('nAvgBytesPerSec', ctypes.c_ulong),
+    ('nBlockAlign', ctypes.c_long),
+    ('wBitsPerSample', ctypes.c_long),
+    ('cbSize', ctypes.c_long)]
 PWAVEFORMATEX = LPWAVEFORMATEX = ctypes.POINTER(WAVEFORMATEX)
 
 # BASS_ChannelGetLength/GetPosition/SetPosition modes
@@ -802,82 +809,82 @@ BASS_FX_DX8_PARAMEQ = 7
 BASS_FX_DX8_REVERB = 8
 
 class BASS_DX8_CHORUS(ctypes.Structure):
-	_fields_ = [('fWetDryMix', ctypes.c_float),#float       fWetDryMix;
-	('fDepth', ctypes.c_float),#float       fDepth;
-	('fFeedback', ctypes.c_float),#float       fFeedback;
-	('fFrequency', ctypes.c_float),#float       fFrequency;
-	('lWaveform', ctypes.c_ulong),#DWORD       lWaveform;// 0=triangle, 1=sine
-	('fDelay', ctypes.c_float),#float       fDelay;
-	('lPhase', ctypes.c_ulong)#DWORD       lPhase;// BASS_DX8_PHASE_xxx
-	]
+    _fields_ = [('fWetDryMix', ctypes.c_float),#float       fWetDryMix;
+    ('fDepth', ctypes.c_float),#float       fDepth;
+    ('fFeedback', ctypes.c_float),#float       fFeedback;
+    ('fFrequency', ctypes.c_float),#float       fFrequency;
+    ('lWaveform', ctypes.c_ulong),#DWORD       lWaveform;// 0=triangle, 1=sine
+    ('fDelay', ctypes.c_float),#float       fDelay;
+    ('lPhase', ctypes.c_ulong)#DWORD       lPhase;// BASS_DX8_PHASE_xxx
+    ]
 
 class BASS_DX8_COMPRESSOR(ctypes.Structure):
-	_fields_ = [('fGain', ctypes.c_float),#float   fGain;
-	('fAttack', ctypes.c_float),#float   fAttack;
-	('fRelease', ctypes.c_float),#float   fRelease;
-	('fThreshold', ctypes.c_float),#float   fThreshold;
-	('fRatio', ctypes.c_float),#float   fRatio;
-	('fPredelay', ctypes.c_float)#float   fPredelay;
-	]
+    _fields_ = [('fGain', ctypes.c_float),#float   fGain;
+    ('fAttack', ctypes.c_float),#float   fAttack;
+    ('fRelease', ctypes.c_float),#float   fRelease;
+    ('fThreshold', ctypes.c_float),#float   fThreshold;
+    ('fRatio', ctypes.c_float),#float   fRatio;
+    ('fPredelay', ctypes.c_float)#float   fPredelay;
+    ]
 
 class BASS_DX8_DISTORTION(ctypes.Structure):
-	_fields_ = [('fGain', ctypes.c_float),#float   fGain;
-	('fEdge', ctypes.c_float),#float   fEdge;
-	('fPostEQCenterFrequency', ctypes.c_float),#float   fPostEQCenterFrequency;
-	('fPostEQBandwidth', ctypes.c_float),#float   fPostEQBandwidth;
-	('fPreLowpassCutoff', ctypes.c_float)#float   fPreLowpassCutoff;
-	]
+    _fields_ = [('fGain', ctypes.c_float),#float   fGain;
+    ('fEdge', ctypes.c_float),#float   fEdge;
+    ('fPostEQCenterFrequency', ctypes.c_float),#float   fPostEQCenterFrequency;
+    ('fPostEQBandwidth', ctypes.c_float),#float   fPostEQBandwidth;
+    ('fPreLowpassCutoff', ctypes.c_float)#float   fPreLowpassCutoff;
+    ]
 
 class BASS_DX8_ECHO(ctypes.Structure):
-	_fields_ = [('fWetDryMix', ctypes.c_float),#float   fWetDryMix;
-	('fFeedback', ctypes.c_float),#float   fFeedback;
-	('fLeftDelay', ctypes.c_float),#float   fLeftDelay;
-	('fRightDelay', ctypes.c_float),#float   fRightDelay;
-	('lPanDelay', ctypes.c_byte)#BOOL    lPanDelay;
-	]
+    _fields_ = [('fWetDryMix', ctypes.c_float),#float   fWetDryMix;
+    ('fFeedback', ctypes.c_float),#float   fFeedback;
+    ('fLeftDelay', ctypes.c_float),#float   fLeftDelay;
+    ('fRightDelay', ctypes.c_float),#float   fRightDelay;
+    ('lPanDelay', ctypes.c_byte)#BOOL    lPanDelay;
+    ]
 
 class BASS_DX8_FLANGER(ctypes.Structure):
-	_fields_ = [('fWetDryMix', ctypes.c_float),#float       fWetDryMix;
-	('fDepth', ctypes.c_float),#float       fDepth;
-	('fFeedback', ctypes.c_float),#float       fFeedback;
-	('fFrequency', ctypes.c_float),#float       fFrequency;
-	('lWaveform', ctypes.c_ulong),#DWORD lWaveform;// 0=triangle, 1=sine
-	('fDelay', ctypes.c_float),#float       fDelay;
-	('lPhase', ctypes.c_ulong)#DWORD       lPhase;// BASS_DX8_PHASE_xxx
-	]
+    _fields_ = [('fWetDryMix', ctypes.c_float),#float       fWetDryMix;
+    ('fDepth', ctypes.c_float),#float       fDepth;
+    ('fFeedback', ctypes.c_float),#float       fFeedback;
+    ('fFrequency', ctypes.c_float),#float       fFrequency;
+    ('lWaveform', ctypes.c_ulong),#DWORD lWaveform;// 0=triangle, 1=sine
+    ('fDelay', ctypes.c_float),#float       fDelay;
+    ('lPhase', ctypes.c_ulong)#DWORD       lPhase;// BASS_DX8_PHASE_xxx
+    ]
 
 class BASS_DX8_GARGLE(ctypes.Structure):
-	_fields_ = [('dwRateHz', ctypes.c_ulong),#DWORD dwRateHz;// Rate of modulation in hz
-	('dwWaveShape', ctypes.c_ulong)#DWORD dwWaveShape;// 0=triangle, 1=square
-	]
+    _fields_ = [('dwRateHz', ctypes.c_ulong),#DWORD dwRateHz;// Rate of modulation in hz
+    ('dwWaveShape', ctypes.c_ulong)#DWORD dwWaveShape;// 0=triangle, 1=square
+    ]
 
 class BASS_DX8_I3DL2REVERB(ctypes.Structure):
-	_fields_ = [('lRoom', ctypes.c_int),#int    lRoom;// [-10000, 0]      default: -1000 mB
-	('lRoomHF', ctypes.c_int),#int    lRoomHF;// [-10000, 0]      default: 0 mB
-	('flRoomRolloffFactor', ctypes.c_float),#float  flRoomRolloffFactor;// [0.0, 10.0]      default: 0.0
-	('flDecayTime', ctypes.c_float),#float  flDecayTime;// [0.1, 20.0]      default: 1.49s
-	('flDecayHFRatio', ctypes.c_float),#float  flDecayHFRatio;// [0.1, 2.0]       default: 0.83
-	('lReflections', ctypes.c_int),#int    lReflections;// [-10000, 1000]   default: -2602 mB
-	('flReflectionsDelay', ctypes.c_float),#float  flReflectionsDelay;// [0.0, 0.3]       default: 0.007 s
-	('lReverb', ctypes.c_int),#int    lReverb;// [-10000, 2000]   default: 200 mB
-	('flReverbDelay', ctypes.c_float),#float  flReverbDelay;// [0.0, 0.1]       default: 0.011 s
-	('flDiffusion', ctypes.c_float),#float  flDiffusion;// [0.0, 100.0]     default: 100.0 %
-	('flDensity', ctypes.c_float),#float  flDensity;// [0.0, 100.0]     default: 100.0 %
-	('flHFReference', ctypes.c_float)#float  flHFReference;// [20.0, 20000.0]  default: 5000.0 Hz
-	]
+    _fields_ = [('lRoom', ctypes.c_int),#int    lRoom;// [-10000, 0]      default: -1000 mB
+    ('lRoomHF', ctypes.c_int),#int    lRoomHF;// [-10000, 0]      default: 0 mB
+    ('flRoomRolloffFactor', ctypes.c_float),#float  flRoomRolloffFactor;// [0.0, 10.0]      default: 0.0
+    ('flDecayTime', ctypes.c_float),#float  flDecayTime;// [0.1, 20.0]      default: 1.49s
+    ('flDecayHFRatio', ctypes.c_float),#float  flDecayHFRatio;// [0.1, 2.0]       default: 0.83
+    ('lReflections', ctypes.c_int),#int    lReflections;// [-10000, 1000]   default: -2602 mB
+    ('flReflectionsDelay', ctypes.c_float),#float  flReflectionsDelay;// [0.0, 0.3]       default: 0.007 s
+    ('lReverb', ctypes.c_int),#int    lReverb;// [-10000, 2000]   default: 200 mB
+    ('flReverbDelay', ctypes.c_float),#float  flReverbDelay;// [0.0, 0.1]       default: 0.011 s
+    ('flDiffusion', ctypes.c_float),#float  flDiffusion;// [0.0, 100.0]     default: 100.0 %
+    ('flDensity', ctypes.c_float),#float  flDensity;// [0.0, 100.0]     default: 100.0 %
+    ('flHFReference', ctypes.c_float)#float  flHFReference;// [20.0, 20000.0]  default: 5000.0 Hz
+    ]
 
 class BASS_DX8_PARAMEQ(ctypes.Structure):
-	_fields_ = [('fCenter', ctypes.c_float),#float   fCenter;
-	('fBandwidth', ctypes.c_float),#float   fBandwidth;
-	('fGain', ctypes.c_float)#float   fGain;
-	]
+    _fields_ = [('fCenter', ctypes.c_float),#float   fCenter;
+    ('fBandwidth', ctypes.c_float),#float   fBandwidth;
+    ('fGain', ctypes.c_float)#float   fGain;
+    ]
 
 class BASS_DX8_REVERB(ctypes.Structure):
-	_fields_ = [('fInGain', ctypes.c_float),#float fInGain;// [-96.0,0.0]            default: 0.0 dB
-	('fReverbMix', ctypes.c_float),#float fReverbMix;// [-96.0,0.0]         default: 0.0 db
-	('fReverbTime', ctypes.c_float),#float fReverbTime;// [0.001,3000.0]     default: 1000.0 ms
-	('fHighFreqRTRatio', ctypes.c_float)#float fHighFreqRTRatio;// [0.001,0.999] default: 0.001
-	]
+    _fields_ = [('fInGain', ctypes.c_float),#float fInGain;// [-96.0,0.0]            default: 0.0 dB
+    ('fReverbMix', ctypes.c_float),#float fReverbMix;// [-96.0,0.0]         default: 0.0 db
+    ('fReverbTime', ctypes.c_float),#float fReverbTime;// [0.001,3000.0]     default: 1000.0 ms
+    ('fHighFreqRTRatio', ctypes.c_float)#float fHighFreqRTRatio;// [0.001,0.999] default: 0.001
+    ]
 
 BASS_DX8_PHASE_NEG_180 = 0
 BASS_DX8_PHASE_NEG_90 = 1
@@ -1093,158 +1100,158 @@ BASS_FXReset = func_type(ctypes.c_bool, HFX)(('BASS_FXReset', bass_module))
 
 
 if platform.system().lower() == 'windows':
-	#BOOL BASSDEF(BASS_Init)(int device, DWORD freq, DWORD flags, HWND win, const GUID *dsguid);
-	BASS_Init = func_type(ctypes.c_bool, ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_void_p)(('BASS_Init', bass_module))
-	#void *BASSDEF(BASS_GetDSoundObject)(DWORD object);
-	BASS_GetDSoundObject = func_type(ctypes.c_void_p, ctypes.c_ulong)(('BASS_GetDSoundObject', bass_module))
-	#BOOL BASSDEF(BASS_SetEAXParameters)(int env, float vol, float decay, float damp);
-	BASS_SetEAXParameters = func_type(ctypes.c_bool, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float)(('BASS_SetEAXParameters', bass_module))
-	#BOOL BASSDEF(BASS_GetEAXParameters)(DWORD *env, float *vol, float *decay, float *damp);
-	BASS_GetEAXParameters = func_type(ctypes.c_bool, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float))(('BASS_GetEAXParameters', bass_module))
+    #BOOL BASSDEF(BASS_Init)(int device, DWORD freq, DWORD flags, HWND win, const GUID *dsguid);
+    BASS_Init = func_type(ctypes.c_bool, ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_void_p)(('BASS_Init', bass_module))
+    #void *BASSDEF(BASS_GetDSoundObject)(DWORD object);
+    BASS_GetDSoundObject = func_type(ctypes.c_void_p, ctypes.c_ulong)(('BASS_GetDSoundObject', bass_module))
+    #BOOL BASSDEF(BASS_SetEAXParameters)(int env, float vol, float decay, float damp);
+    BASS_SetEAXParameters = func_type(ctypes.c_bool, ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float)(('BASS_SetEAXParameters', bass_module))
+    #BOOL BASSDEF(BASS_GetEAXParameters)(DWORD *env, float *vol, float *decay, float *damp);
+    BASS_GetEAXParameters = func_type(ctypes.c_bool, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float))(('BASS_GetEAXParameters', bass_module))
 
 def bass_ord(symbol):
-	return symbol
+    return symbol
 if sys.hexversion < 0x03000000:
-	def bass_ord(symbol):
-		return ord(symbol)
+    def bass_ord(symbol):
+        return ord(symbol)
 
 def string_for_print(value, codec = 'cp1251'):
-	if sys.hexversion < 0x03000000:
-		return value
-	else:
-		return str(value, codec)
+    if sys.hexversion < 0x03000000:
+        return value
+    else:
+        return str(value, codec)
 
 def seconds_to_string(value):
-	str_seconds = '00'
-	str_minutes = '00'
-	str_hours = '00'
-	seconds = int(value)
-	if seconds > 0:
-		if seconds < 10:
-			str_seconds = '0' + str(seconds)
-		elif seconds > 60:
-			str_seconds = str(seconds%60)
-		else:
-			str_seconds = str(seconds)
-	minutes = int(value/60)
-	if minutes > 0:
-		if minutes < 10:
-			str_minutes = '0' + str(minutes)
-		elif minutes > 60:
-			str_minutes = str(minutes%60)
-		else:
-			str_minutes = str(minutes)
-	hours = int(minutes/60)
-	if hours > 0:
-		if hours < 10:
-			str_hours = '0' + str(hours)
-		elif hours < 60:
-			str_hours = str(hours)
-	return str_hours + ':' + str_minutes + ':' + str_seconds
+    str_seconds = '00'
+    str_minutes = '00'
+    str_hours = '00'
+    seconds = int(value)
+    if seconds > 0:
+        if seconds < 10:
+            str_seconds = '0' + str(seconds)
+        elif seconds > 60:
+            str_seconds = str(seconds%60)
+        else:
+            str_seconds = str(seconds)
+    minutes = int(value/60)
+    if minutes > 0:
+        if minutes < 10:
+            str_minutes = '0' + str(minutes)
+        elif minutes > 60:
+            str_minutes = str(minutes%60)
+        else:
+            str_minutes = str(minutes)
+    hours = int(minutes/60)
+    if hours > 0:
+        if hours < 10:
+            str_hours = '0' + str(hours)
+        elif hours < 60:
+            str_hours = str(hours)
+    return str_hours + ':' + str_minutes + ':' + str_seconds
 
 def stream_length_as_hms(handle, mode = BASS_POS_BYTE):
-	return seconds_to_string(BASS_ChannelBytes2Seconds(handle, BASS_ChannelGetLength(handle, mode)))
+    return seconds_to_string(BASS_ChannelBytes2Seconds(handle, BASS_ChannelGetLength(handle, mode)))
 
 def get_tags(handle, tags = BASS_TAG_OGG):
-	result = []
-	addr = BASS_ChannelGetTags(handle, tags)
-	res = b''
-	while isinstance(res, (str, bytes)):
-		res = ctypes.string_at(addr)
-		#if sys.hexversion >= 0x03000000:
-			#res = ctypes.wstring_at(addr)
-		addr += len(res) + 1
-		if res:
-			if 32 < bass_ord(res[0]) < 256:
-				result.append(res)
-			else:
-				res = None
-	return result
+    result = []
+    addr = BASS_ChannelGetTags(handle, tags)
+    res = b''
+    while isinstance(res, (str, bytes)):
+        res = ctypes.string_at(addr)
+        #if sys.hexversion >= 0x03000000:
+            #res = ctypes.wstring_at(addr)
+        addr += len(res) + 1
+        if res:
+            if 32 < bass_ord(res[0]) < 256:
+                result.append(res)
+            else:
+                res = None
+    return result
 
 def get_tags_as_list(handle, tags = BASS_TAG_OGG):
-	result_as_list = []
-	addr = BASS_ChannelGetTags(handle, tags)
-	str_tag = ''
-	while isinstance(str_tag, str):
-		str_tag = ctypes.string_at(addr)
-		addr += len(str_tag) + 1
-		if str_tag:
-			if 32 < bass_ord(str_tag[0]) < 256:
-				result_as_list.append(tuple(str_tag.split('=')))
-			else:
-				str_tag = None
-	return result_as_list
+    result_as_list = []
+    addr = BASS_ChannelGetTags(handle, tags)
+    str_tag = ''
+    while isinstance(str_tag, str):
+        str_tag = ctypes.string_at(addr)
+        addr += len(str_tag) + 1
+        if str_tag:
+            if 32 < bass_ord(str_tag[0]) < 256:
+                result_as_list.append(tuple(str_tag.split('=')))
+            else:
+                str_tag = None
+    return result_as_list
 
 def get_tags_as_dict(handle, tags = BASS_TAG_OGG):
-	result_as_dict = {}
-	addr = BASS_ChannelGetTags(handle, tags)
-	str_tag = ''
-	while isinstance(str_tag, str):
-		str_tag = ctypes.string_at(addr)
-		addr += len(str_tag) + 1
-		if str_tag:
-			if 32 < bass_ord(str_tag[0]) < 256:
-				key, value = str_tag.split('=')
-				result_as_dict[key] = value
-			else:
-				str_tag = None
-	return result_as_dict
+    result_as_dict = {}
+    addr = BASS_ChannelGetTags(handle, tags)
+    str_tag = ''
+    while isinstance(str_tag, str):
+        str_tag = ctypes.string_at(addr)
+        addr += len(str_tag) + 1
+        if str_tag:
+            if 32 < bass_ord(str_tag[0]) < 256:
+                key, value = str_tag.split('=')
+                result_as_dict[key] = value
+            else:
+                str_tag = None
+    return result_as_dict
 
 def play_handle(handle, show_tags = True):
-	if handle == 0:
-		print('BASS_StreamCreateFile error %s' % get_error_description(BASS_ErrorGetCode()))
-	else:
-		if show_tags:
-			print('============== Tags Information ==============')
-			try:
-				import pytags
-				print(pytags.TAGS_Read(handle, '%IFV1(%ITRM(%TRCK),%ITRM(%TRCK). )%IFV2(%ITRM(%ARTI),%ICAP(%ITRM(%ARTI)),no artist) - %IFV2(%ITRM(%TITL),%ICAP(%ITRM(%TITL)),no title)%IFV1(%ITRM(%ALBM), - %IUPC(%ITRM(%ALBM)))%IFV1(%YEAR, %(%YEAR%))%IFV1(%ITRM(%GNRE), {%ITRM(%GNRE)})%IFV1(%ITRM(%CMNT), [%ITRM(%CMNT)])'))
-			except:
-				print('============== tags module not accessible ==============')
-				print('============== BASS_ChannelGetTags return ==============')
-				try:
-					for tag in get_tags(handle):
-						print(string_for_print(tag))
-				except:
-					print('error with get_tags(handle) function')
-				#~ for key, value in get_tags_as_list(handle):
-					#~ print key, '::', value
-				#~ result_as_dict = dict(get_tags_as_list(handle))
-				#~ for key, value in result_as_dict.iteritems():
-					#~ print key, ':', value
-				#~ for key, value in get_tags_as_dict(handle).iteritems():
-					#~ print key, ':', value
-		print('============== Channel Information ==============')
-		channel_info = BASS_CHANNELINFO()
-		if not BASS_ChannelGetInfo(handle, channel_info):
-			print('BASS_ChannelGetInfo error %s' % get_error_description(BASS_ErrorGetCode()))
-		else:
-			print('default playback rate = %d' % channel_info.freq)
-			print('channels = %d' % channel_info.chans)
-			print('BASS_SAMPLE/STREAM/MUSIC/SPEAKER flags = %d' % channel_info.flags)
-			print('type of channel = %X' % channel_info.ctype)
-			print('original resolution = %d' % channel_info.origres)
-			print('plugin = %d' % channel_info.plugin)
-			print('sample = %d' % channel_info.sample)
-			print('filename = %s' % channel_info.filename)
-		print('============== Ext Channel Information ==============')
-		channel_length = BASS_ChannelGetLength(handle, BASS_POS_BYTE)
-		channel_position = BASS_ChannelGetPosition(handle, BASS_POS_BYTE)
-		print('Channel Length = %d' % channel_length)
-		print('Channel Length = %d' % int(BASS_ChannelBytes2Seconds(handle, channel_length)), 'seconds')
-		if not BASS_ChannelPlay(handle, False):
-			print('BASS_ChannelPlay error %s' % get_error_description(BASS_ErrorGetCode()))
-		else:
-			print('============== Play Information ==============')
-			import time
-			while channel_position < channel_length:
-				channel_position = BASS_ChannelGetPosition(handle, BASS_POS_BYTE)
-				print('Channel Position = %d' % channel_position)
-				print('Channel Position = %d' % int(BASS_ChannelBytes2Seconds(handle, channel_position)), 'seconds')
-				print('CPU =', BASS_GetCPU())
-				time.sleep(1)
-		if not BASS_StreamFree(handle):
-			print('BASS_StreamFree error %s' % get_error_description(BASS_ErrorGetCode()))
+    if handle == 0:
+        print('BASS_StreamCreateFile error %s' % get_error_description(BASS_ErrorGetCode()))
+    else:
+        if show_tags:
+            print('============== Tags Information ==============')
+            try:
+                import pytags
+                print(pytags.TAGS_Read(handle, '%IFV1(%ITRM(%TRCK),%ITRM(%TRCK). )%IFV2(%ITRM(%ARTI),%ICAP(%ITRM(%ARTI)),no artist) - %IFV2(%ITRM(%TITL),%ICAP(%ITRM(%TITL)),no title)%IFV1(%ITRM(%ALBM), - %IUPC(%ITRM(%ALBM)))%IFV1(%YEAR, %(%YEAR%))%IFV1(%ITRM(%GNRE), {%ITRM(%GNRE)})%IFV1(%ITRM(%CMNT), [%ITRM(%CMNT)])'))
+            except:
+                print('============== tags module not accessible ==============')
+                print('============== BASS_ChannelGetTags return ==============')
+                try:
+                    for tag in get_tags(handle):
+                        print(string_for_print(tag))
+                except:
+                    print('error with get_tags(handle) function')
+                #~ for key, value in get_tags_as_list(handle):
+                    #~ print key, '::', value
+                #~ result_as_dict = dict(get_tags_as_list(handle))
+                #~ for key, value in result_as_dict.iteritems():
+                    #~ print key, ':', value
+                #~ for key, value in get_tags_as_dict(handle).iteritems():
+                    #~ print key, ':', value
+        print('============== Channel Information ==============')
+        channel_info = BASS_CHANNELINFO()
+        if not BASS_ChannelGetInfo(handle, channel_info):
+            print('BASS_ChannelGetInfo error %s' % get_error_description(BASS_ErrorGetCode()))
+        else:
+            print('default playback rate = %d' % channel_info.freq)
+            print('channels = %d' % channel_info.chans)
+            print('BASS_SAMPLE/STREAM/MUSIC/SPEAKER flags = %d' % channel_info.flags)
+            print('type of channel = %X' % channel_info.ctype)
+            print('original resolution = %d' % channel_info.origres)
+            print('plugin = %d' % channel_info.plugin)
+            print('sample = %d' % channel_info.sample)
+            print('filename = %s' % channel_info.filename)
+        print('============== Ext Channel Information ==============')
+        channel_length = BASS_ChannelGetLength(handle, BASS_POS_BYTE)
+        channel_position = BASS_ChannelGetPosition(handle, BASS_POS_BYTE)
+        print('Channel Length = %d' % channel_length)
+        print('Channel Length = %d' % int(BASS_ChannelBytes2Seconds(handle, channel_length)), 'seconds')
+        if not BASS_ChannelPlay(handle, False):
+            print('BASS_ChannelPlay error %s' % get_error_description(BASS_ErrorGetCode()))
+        else:
+            print('============== Play Information ==============')
+            import time
+            while channel_position < channel_length:
+                channel_position = BASS_ChannelGetPosition(handle, BASS_POS_BYTE)
+                print('Channel Position = %d' % channel_position)
+                print('Channel Position = %d' % int(BASS_ChannelBytes2Seconds(handle, channel_position)), 'seconds')
+                print('CPU =', BASS_GetCPU())
+                time.sleep(1)
+        if not BASS_StreamFree(handle):
+            print('BASS_StreamFree error %s' % get_error_description(BASS_ErrorGetCode()))
 
 @SYNCPROC
 def callback(handle, buffer, length, user):
