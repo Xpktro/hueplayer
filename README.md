@@ -8,9 +8,9 @@ Does not require anything but python 2.7
 
 Built using:
 
-    - BASS Sound Library: http://www.un4seen.com/bass.html
-    - Maxim Kolosov's pybass bindings (tweaked by Eliuk Blau): http://sourceforge.net/projects/pybass/
-    - phue Philips Hue HTTP JSON API wrapper by Nathanaël Lécaudé: https://github.com/studioimaginaire/phue
+- BASS Sound Library: http://www.un4seen.com/bass.html
+- Maxim Kolosov's pybass bindings (tweaked by Eliuk Blau): http://sourceforge.net/projects/pybass/
+- phue Philips Hue HTTP JSON API wrapper by Nathanaël Lécaudé: https://github.com/studioimaginaire/phue
 
 
 ## Usage
