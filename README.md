@@ -23,11 +23,12 @@ know/have an username), look all the way down to the --register option.*
 
 
 Where:
-    - ``filename``: Filename or path to the file to be played.
-    - ``-l|--lights``: Number of lights to animate, the lights will respond in ascending order (1 - lower frequencies, N - higher frequencies).
-    - ``-u|--username``: Username to be presented when comunicating with the bridge.
-    - ``-i|--ip``: IP address of the bridge to connect to.
-    - ``--register``: Perform an username registration, the username argument must be supplied also. Be sure to press the bridge button before doing this. Usernames must contain 10 characters at minimum.
+
+- ``filename``: Filename or path to the file to be played.
+- ``-l|--lights``: Number of lights to animate, the lights will respond in ascending order (1 - lower frequencies, N - higher frequencies).
+- ``-u|--username``: Username to be presented when comunicating with the bridge.
+- ``-i|--ip``: IP address of the bridge to connect to.
+- ``--register``: Perform an username registration, the username argument must be supplied also. Be sure to press the bridge button before doing this. Usernames must contain 10 characters at minimum.
 
 
 The player cannot be paused and can be stopped with Ctrl+C only. Yes, is that simple.
