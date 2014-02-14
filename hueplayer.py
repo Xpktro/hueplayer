@@ -211,7 +211,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # One can just simply register, without supplying a filename.
-    elif args.mic:
+    elif args.microphone:
         HuePlayer(args, backend_class=MicBackend).play()
     elif not args.file:
         print 'You must supply filename to play'
