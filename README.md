@@ -15,7 +15,7 @@ Built using:
 
 ## Usage
 
-``$ python hueplayer.py filename [-l|--lights lights] [-u|--username username] [-i|--ip address] [--register]``
+``$ python hueplayer.py filename [-l|--lights lights] [-u|--username username] [-i|--ip address] [--register] [--microphone]``
 
 
 *Note: If this is the first time you're using your bridge (or you don't
@@ -29,6 +29,7 @@ Where:
 - ``-u|--username``: Username to be presented when comunicating with the bridge.
 - ``-i|--ip``: IP address of the bridge to connect to.
 - ``--register``: Perform an username registration, the username argument must be supplied also. Be sure to press the bridge button before doing this. Usernames must contain 10 characters at minimum.
+- ``--microphone``: Use the system microphone input instead of a file, ignores the filename parameter.
 
 
 The player cannot be paused and can be stopped with Ctrl+C only. Yes, is that simple.

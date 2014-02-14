@@ -1,0 +1,5 @@
+TODO:
+- Robust register procedure. The player assumes all the lights were detected and only registers the username.
+- File existence (and even format, backend-dependent) validation.
+- Player controls.
+- Possibly use a non-blocking (queue-based) system for independent bulbs requests and the backend loop.

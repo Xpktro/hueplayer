@@ -158,6 +158,29 @@ class HuePlayer(object):
             )
 
 
+class MicBackend(PlayerBackend):
+    """
+    A player backend that uses the system microphone instead of reading a file.
+    """
+
+    @staticmethod
+    def init():
+        return BASS_RecordInit(-1)
+
+    @staticmethod
+    def get_stream(file):
+        return BASS_RecordStart(44100, 1, 0, MicBackend.recording, 0)
+
+    @staticmethod
+    @RECORDPROC
+    def recording(handle, buffer, length, user):
+        """
+        Recording callback required by BASS_RecordStart to perform any needed 
+        transformation to the record stream.
+        """
+        return True
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file', nargs='?', help='file to play')
@@ -169,6 +192,8 @@ if __name__ == '__main__':
                         help='IP address of bridge')
     parser.add_argument('--register', action='store_true',
                         help='register with API')
+    parser.add_argument('--microphone', action='store_true',
+                        help='use microphone instead of playing a file')
     args = parser.parse_args()
 
     # Why did I put this here? There was no other place to put it without
@@ -186,6 +211,8 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # One can just simply register, without supplying a filename.
+    elif args.mic:
+        HuePlayer(args, backend_class=MicBackend).play()
     elif not args.file:
         print 'You must supply filename to play'
         sys.exit(0)
