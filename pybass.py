@@ -66,6 +66,7 @@ if platform.system().lower() == 'windows':
 elif platform.system().lower() == 'darwin':
     # 64 bit bass anyone?
     bass_module = ctypes.CDLL('./libs/bass.dylib', mode=ctypes.RTLD_GLOBAL)
+    func_type = ctypes.CFUNCTYPE
 else:
     bass_module = ctypes.CDLL('./libs/bass32.so', mode=ctypes.RTLD_GLOBAL) if \
         not sys.maxint > 2 ** 32 else \
